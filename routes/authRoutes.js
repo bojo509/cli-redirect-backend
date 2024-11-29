@@ -4,7 +4,7 @@ import { createEvent } from '../controller/eventController.js';
 import { compare, hash } from 'bcrypt';
 import pkg from 'validator';
 const { isEmail } = pkg;
-import jwt from 'jsonwebtoken';
+import { encryptPayload } from '../controller/JWEController.js';
 
 const router = express.Router();
 const getRandomInt = (min, max) => {
@@ -34,7 +34,7 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await hash(password, getRandomInt(5, 10));
         const user = await register(username, email, hashedPassword);
         createEvent("User registered", user[0].email, "")
-        const token = jwt.sign({ user: { id: user[0].id, email: user[0].email } }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = await encryptPayload({ user: { id: user[0].id, email: user[0].email } });
         user[0].id = undefined;
 
         return res.status(200).json({ message: "User registered successfully", user, token });
@@ -58,10 +58,6 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: "Invalid username or password" });
         }
 
-        createEvent("User logged in", user[0].email, "")
-        const token = jwt.sign({ user: { id: user[0].id, email: user[0].email } }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        user[0].id = undefined;
-
         const isMatch = await compare(password, user[0].password);
 
         if (!isMatch) {
@@ -69,6 +65,11 @@ router.post('/login', async (req, res) => {
         }
 
         user[0].password = undefined;
+
+        createEvent("User logged in", user[0].email, "")
+        const payload = { user: { id: user[0].id, email: user[0].email } }
+        const token = await encryptPayload(payload);
+        user[0].id = undefined;
 
         return res.status(200).json({ message: "User logged in successfully", user, token });
     } catch (error) {
