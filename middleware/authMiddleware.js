@@ -1,5 +1,4 @@
-import pkg from 'jsonwebtoken';
-const { verify } = pkg;
+import { decryptPayload } from '../controller/JWEController.js';
 
 const userAuth = async (req, res, next) => {
     const authHandler = req?.headers?.authorization;
@@ -15,26 +14,25 @@ const userAuth = async (req, res, next) => {
     }
 
     try {
-        const decodedToken = verify(token, process.env.JWT_SECRET);
-    } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: "JWT expired" });
-        } else {
-            return res.status(401).json({ message: "Auth failed" });
-        }
-    }
+        const decryptedPayload = await decryptPayload(token);
 
-    try {
-        const userToken = verify(token, process.env.JWT_SECRET);
-        req.user = {
-            userId: userToken.user.id,
-            userEmail: userToken.user.email
+        if (decryptedPayload.exp < Date.now().valueOf() / 1000) {
+            return res.status(401).json({ message: "JWT expired, please login again" });
         }
+
+        req.user = {
+            userId: decryptedPayload.user.id,
+            userEmail: decryptedPayload.user.email
+        };
 
         next();
     } catch (error) {
-        console.log(error)
-        return res.status(401).json({ message: "Auth failed" })
+        if (error.message === 'Token has expired') {
+            return res.status(401).json({ message: "JWT expired, please login again" });
+        } else {
+            console.log(error);
+            return res.status(401).json({ message: `Auth failed: ${error}` });
+        }
     }
 }
 
