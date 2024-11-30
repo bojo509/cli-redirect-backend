@@ -1,7 +1,7 @@
 import express from 'express';
 import userAuth from '../middleware/authMiddleware.js';
 import { createEvent } from '../controller/eventController.js';
-import { shortenUrl, getUrls, deleteURL } from '../controller/urlController.js';
+import { shortenUrl, getUrls, deleteURL, updateUrl } from '../controller/urlController.js';
 
 const router = express.Router();
 
@@ -26,6 +26,20 @@ router.post('/create', userAuth, async (req, res) => {
         const shortenedUrl = await shortenUrl(url, id);
         createEvent("Url shortened", email, `${url} -> ${shortenedUrl[0].shortid}`);
         return res.status(200).json({ message: "Url shortened successfully", shortenedUrl });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+})
+
+router.put('/update', userAuth, async (req, res) => {
+    try {
+        const { shortid, newUrl } = req.body;
+        const id = req.user.userId;
+        const email = req.user.userEmail;
+        const updatedUrl = await updateUrl(newUrl, id, shortid);
+        createEvent("Url updated", email, `${updatedUrl[0].url} -> ${updatedUrl[0].shortid}`);
+        return res.status(200).json({ message: "Url updated successfully", updatedUrl });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Internal server error", error: error.message });

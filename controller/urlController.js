@@ -5,6 +5,14 @@ import { config } from 'dotenv';
 config();
 const shortid = customAlphabet(process.env.CUSTOM_ALPHABET, 8)
 
+const getUrls = async (userid) => {
+    return await sql("SELECT url, shortid FROM urls WHERE user_id = $1;", [userid]);
+}
+
+const getUrl = async (shortid) => {
+    return await sql("SELECT url FROM urls WHERE shortid = $1;", [shortid]);
+}
+
 const shortenUrl = async (url, userId) => {
     let shortId = shortid();
     const shortIdExists = await sql("SELECT shortid FROM urls WHERE shortid = $1;", [shortId]);
@@ -18,12 +26,24 @@ const shortenUrl = async (url, userId) => {
     return await sql("SELECT url, shortid FROM urls WHERE shortid = $1;", [shortId]);
 }
 
-const getUrls = async (userid) => {
-    return await sql("SELECT url, shortid FROM urls WHERE user_id = $1;", [userid]);
-}
+const updateUrl = async (newUrl, id, shortid) => {
+    const ownerId = await sql("SELECT user_id FROM urls WHERE shortid = $1;", [shortid])
 
-const getUrl = async (shortid) => {
-    return await sql("SELECT url FROM urls WHERE shortid = $1;", [shortid]);
+    if (ownerId.length === 0) {
+        return { message: "Not the owner of this shortened url" };
+    }
+
+    const uid = ownerId[0].user_id;
+    const urlExists = await sql("SELECT shortid FROM urls WHERE shortid = $1;", [shortid]);
+
+    if (urlExists.length === 0) {
+        return { message: "Url does not exist" };
+    }
+
+    if (uid === id) {
+        await sql("UPDATE urls SET url = $1 WHERE shortid = $2;", [newUrl, shortid]);
+        return await sql("SELECT url, shortid FROM urls WHERE shortid = $1;", [shortid]);
+    }
 }
 
 const deleteURL = async (id, shortid) => {
@@ -31,7 +51,7 @@ const deleteURL = async (id, shortid) => {
     const url = await sql("SELECT url FROM urls WHERE shortid = $1;", [shortid]);
 
     if (ownerId.length === 0) {
-        return { message: "Url does not exist" };
+        return { message: "Not the owner of this shortened url" };
     }
 
     const uid = ownerId[0].user_id;
@@ -47,4 +67,4 @@ const deleteURL = async (id, shortid) => {
     }
 }
 
-export { shortenUrl, getUrls, getUrl, deleteURL };
+export { getUrls, getUrl, shortenUrl, updateUrl, deleteURL };
