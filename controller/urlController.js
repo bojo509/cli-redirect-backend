@@ -1,9 +1,11 @@
 import sql from "../connection/query.js";
 import { customAlphabet } from 'nanoid';
 import { config } from 'dotenv';
+import { Redis } from "ioredis";
 
 config();
 const shortid = customAlphabet(process.env.CUSTOM_ALPHABET, 8)
+const redis = new Redis(process.env.REDIS_URL);
 
 const getUrls = async (userid) => {
     return await sql("SELECT url, shortid FROM urls WHERE user_id = $1;", [userid]);
@@ -11,6 +13,20 @@ const getUrls = async (userid) => {
 
 const getUrl = async (shortid) => {
     return await sql("SELECT url FROM urls WHERE shortid = $1;", [shortid]);
+}
+
+const addToCache = async (shortid, url) => {
+    await redis.set(shortid, JSON.stringify(url));
+    await redis.expire(shortid, 3600);
+}
+
+const getFromCache = async (shortid) => {
+    const url = await redis.get(shortid);
+    return JSON.parse(url);
+}
+
+const removeFromCache = async (shortid) => {
+    await redis.del(shortid);
 }
 
 const shortenUrl = async (url, userId) => {
@@ -67,4 +83,4 @@ const deleteURL = async (id, shortid) => {
     }
 }
 
-export { getUrls, getUrl, shortenUrl, updateUrl, deleteURL };
+export { getUrls, getUrl, getFromCache, addToCache, removeFromCache, shortenUrl, updateUrl, deleteURL };

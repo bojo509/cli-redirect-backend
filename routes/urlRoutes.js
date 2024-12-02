@@ -1,7 +1,7 @@
 import express from 'express';
 import userAuth from '../middleware/authMiddleware.js';
 import { createEvent } from '../controller/eventController.js';
-import { shortenUrl, getUrls, deleteURL, updateUrl } from '../controller/urlController.js';
+import { shortenUrl, getUrls, deleteURL, updateUrl, getFromCache, addToCache, removeFromCache } from '../controller/urlController.js';
 
 const router = express.Router();
 
@@ -24,6 +24,7 @@ router.post('/create', userAuth, async (req, res) => {
         const id = req.user.userId;
         const email = req.user.userEmail;
         const shortenedUrl = await shortenUrl(url, id);
+        addToCache(shortenedUrl[0].shortid, shortenedUrl[0].url);
         createEvent("Url shortened", email, `${url} -> ${shortenedUrl[0].shortid}`);
         return res.status(200).json({ message: "Url shortened successfully", shortenedUrl });
     } catch (error) {
@@ -38,6 +39,8 @@ router.put('/update', userAuth, async (req, res) => {
         const id = req.user.userId;
         const email = req.user.userEmail;
         const updatedUrl = await updateUrl(newUrl, id, shortid);
+        removeFromCache(shortid);
+        addToCache(updatedUrl[0].shortid, updatedUrl[0].url);
         createEvent("Url updated", email, `${updatedUrl[0].url} -> ${updatedUrl[0].shortid}`);
         return res.status(200).json({ message: "Url updated successfully", updatedUrl });
     } catch (error) {
@@ -54,6 +57,7 @@ router.delete('/delete', userAuth, async (req, res) => {
         const deleteResponse = await deleteURL(id, shortid);
         if (deleteResponse.message === 'Url deleted successfully') {
             createEvent("Url deleted", email, `${deleteResponse.url} -> ${deleteResponse.shortid}`);
+            removeFromCache(shortid)
             return res.status(200).json({ message: deleteResponse.message });
         }
         return res.status(400).json({ message: deleteResponse.message });
