@@ -9,9 +9,17 @@ router.get('/urls', userAuth, async (req, res) => {
     try {
         const id = req.user.userId;
         const email = req.user.userEmail;
-        const urls = await getUrls(id);
-        createEvent("Urls fetched", email, "");
-        return res.status(200).json({ message: "Fetched urls successfully", urls });
+        const urlsFromCache = await getFromCache(id);
+        if (urlsFromCache) {
+            createEvent("Urls fetched", email, "");
+            return res.status(200).json({ message: "Fetched urls successfully", urls: urlsFromCache });
+        }
+        else {
+            const urlsFromDb = await getUrls(id);
+            await addToCache(id, urlsFromDb, 300);
+            createEvent("Urls fetched", email, "");
+            return res.status(200).json({ message: "Fetched urls successfully", urls: urlsFromDb });
+        }
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Internal server error", error: error.message });
@@ -24,7 +32,7 @@ router.post('/create', userAuth, async (req, res) => {
         const id = req.user.userId;
         const email = req.user.userEmail;
         const shortenedUrl = await shortenUrl(url, id);
-        addToCache(shortenedUrl[0].shortid, shortenedUrl[0].url);
+        addToCache(shortenedUrl[0].shortid, shortenedUrl[0].url, 300);
         createEvent("Url shortened", email, `${url} -> ${shortenedUrl[0].shortid}`);
         return res.status(200).json({ message: "Url shortened successfully", shortenedUrl });
     } catch (error) {
@@ -40,7 +48,7 @@ router.put('/update', userAuth, async (req, res) => {
         const email = req.user.userEmail;
         const updatedUrl = await updateUrl(newUrl, id, shortid);
         removeFromCache(shortid);
-        addToCache(updatedUrl[0].shortid, updatedUrl[0].url);
+        addToCache(updatedUrl[0].shortid, updatedUrl[0].url, 300);
         createEvent("Url updated", email, `${updatedUrl[0].url} -> ${updatedUrl[0].shortid}`);
         return res.status(200).json({ message: "Url updated successfully", updatedUrl });
     } catch (error) {

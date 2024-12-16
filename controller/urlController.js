@@ -15,9 +15,9 @@ const getUrl = async (shortid) => {
     return await sql("SELECT url FROM urls WHERE shortid = $1;", [shortid]);
 }
 
-const addToCache = async (shortid, url) => {
+const addToCache = async (shortid, url, expireTime) => {
     await redis.set(shortid, JSON.stringify(url));
-    await redis.expire(shortid, 3600);
+    await redis.expire(shortid, expireTime);
 }
 
 const getFromCache = async (shortid) => {

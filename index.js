@@ -16,7 +16,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 await initializeKeyPair();
 app.use(xss());
-app.use(morgan('dev'));
 app.use(router)
 
 app.listen(PORT, () => {
