@@ -1,5 +1,6 @@
 import authRoute from './authRoutes.js';
 import urlRoute from './urlRoutes.js';
+import apiKeyRoute from './apiKeyRoutes.js';
 import express from 'express';
 import { cliHeaderVerify, redirectHeaderVerify } from '../middleware/headerMiddleware.js';
 import { getUrl, getFromCache, addToCache } from '../controller/urlController.js';
@@ -30,5 +31,6 @@ router.get('/', redirectHeaderVerify, async (req, res) => {
 
 router.use('/cli/auth', cliHeaderVerify, authRoute);
 router.use('/cli/url', cliHeaderVerify, urlRoute);
+router.use('/api', apiKeyRoute);
 
 export default router;

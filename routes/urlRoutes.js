@@ -64,7 +64,7 @@ router.delete('/delete', userAuth, async (req, res) => {
         const email = req.user.userEmail;
         const deleteResponse = await deleteURL(id, shortid);
         if (deleteResponse.message === 'Url deleted successfully') {
-            createEvent("Url deleted", email, `${deleteResponse.url} -> ${deleteResponse.shortid}`);
+            createEvent("Url deleted", email, `${deleteResponse.shortid} -> ${deleteResponse.url}`);
             removeFromCache(shortid)
             return res.status(200).json({ message: deleteResponse.message });
         }

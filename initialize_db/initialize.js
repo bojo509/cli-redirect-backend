@@ -8,7 +8,7 @@ const usersTable = await sql("\
     password TEXT NOT NULL, \
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
     edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);");
-    
+
 const linkTable = await sql("\
     CREATE TABLE IF NOT EXISTS urls (\
     id SERIAL PRIMARY KEY, \
@@ -31,4 +31,14 @@ const eventTable = await sql("\
     CONSTRAINT fk_user_event \
     FOREIGN KEY (user_email) \
     REFERENCES users (email) \
+    ON DELETE CASCADE);");
+
+const keys = await sql("\
+    CREATE TABLE IF NOT EXISTS keys (\
+    id SERIAL PRIMARY KEY, \
+    user_key TEXT NOT NULL, \
+    user_id INT NOT NULL , \
+    CONSTRAINT fk_user_id \
+    FOREIGN KEY (user_id) \
+    REFERENCES users (id) \
     ON DELETE CASCADE);");

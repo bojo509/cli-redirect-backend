@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 await initializeKeyPair();
+app.use(morgan('dev'));
 app.use(xss());
 app.use(router)
 

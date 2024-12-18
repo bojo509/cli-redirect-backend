@@ -1,14 +1,19 @@
 import express from 'express';
 import { register, login, emailExists, userNameExists } from '../controller/authController.js';
+import { insertKey } from '../controller/keysController.js';
 import { createEvent } from '../controller/eventController.js';
 import { compare, hash } from 'bcrypt';
 import pkg from 'validator';
 const { isEmail } = pkg;
 import { encryptPayload } from '../controller/JWEController.js';
+import { randomBytes } from 'crypto';
 
 const router = express.Router();
 const getRandomInt = (min, max) => {
     return Math.floor(Math.random() * (max - min)) + min;
+}
+const generateKey = () => {
+    return randomBytes(32).toString('base64url');
 }
 
 router.post('/register', async (req, res) => {
@@ -33,8 +38,10 @@ router.post('/register', async (req, res) => {
 
         const hashedPassword = await hash(password, getRandomInt(5, 10));
         const user = await register(username, email, hashedPassword);
-        createEvent("User registered", user[0].email, "")
+        await createEvent("User registered", user[0].email, "")
         const token = await encryptPayload({ user: { id: user[0].id, email: user[0].email } });
+        const key = generateKey();
+        await insertKey(user[0].id, key);
         user[0].id = undefined;
 
         return res.status(200).json({ message: "User registered successfully", user, token });
@@ -66,7 +73,7 @@ router.post('/login', async (req, res) => {
 
         user[0].password = undefined;
 
-        createEvent("User logged in", user[0].email, "")
+        await createEvent("User logged in", user[0].email, "")
         const payload = { user: { id: user[0].id, email: user[0].email } }
         const token = await encryptPayload(payload);
         user[0].id = undefined;
