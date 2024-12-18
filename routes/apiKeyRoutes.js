@@ -1,5 +1,5 @@
 import express from "express";
-import { getUrls, shortenUrl, deleteURL, addToCache, getFromCache } from "../controller/urlController.js";
+import { getUrls, shortenUrl, deleteURL, addToCache, getFromCache, removeFromCache } from "../controller/urlController.js";
 import { getInfoWithKey } from "../controller/keysController.js";
 import { createEvent } from "../controller/eventController.js";
 
@@ -77,7 +77,7 @@ router.put("/update", async (req, res) => {
     }
 });
 
-router.delete("/delete", async (req, res) => {
+router.post("/delete", async (req, res) => {
     try {
         const { apiKey, shortid } = req.body;
         if (!apiKey || !shortid) {
