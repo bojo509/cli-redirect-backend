@@ -1,5 +1,5 @@
 import express from "express";
-import { getUrls, shortenUrl, deleteURL } from "../controller/urlController.js";
+import { getUrls, shortenUrl, deleteURL, addToCache, getFromCache } from "../controller/urlController.js";
 import { getInfoWithKey } from "../controller/keysController.js";
 import { createEvent } from "../controller/eventController.js";
 
@@ -20,8 +20,15 @@ router.get("/urls", async (req, res) => {
         const userId = id[0].user_id;
         const email = id[0].email;
         await createEvent("URLs fetched", email, "");
-        const urls = await getUrls(userId);
-        return res.status(200).json({ message: "Fetched URLs successfully", urls });
+        const urls = await getFromCache(userId);
+        if (urls > 0) {
+            return res.status(200).json({ message: "Fetched URLs successfully", urls });
+        }
+        else {
+            const urls = await getUrls(userId);
+            await addToCache(userId, urls, 30);
+            return res.status(200).json({ message: "Fetched URLs successfully", urls });
+        }
     } catch (error) {
         console.error(error)
         return res.status(500).json({ message: "Internal server error", error: error.message });
@@ -35,15 +42,16 @@ router.post("/create", async (req, res) => {
             return res.status(400).json({ message: "Please provide a URL and an API key" });
         }
 
-        const id = await getIdWithKey(apiKey);
+        const id = await getInfoWithKey(apiKey);
         if (id.length === 0) {
             return res.status(401).json({ message: "Invalid API key" });
         }
 
         const userId = id[0].user_id;
-        const email = (await getEmailById(userId))[0].email;
+        const email = id[0].email;
         const shortUrl = await shortenUrl(url, userId);
         await createEvent("URL shortened", email, `${url} -> ${shortUrl[0].shortid}`);
+        await addToCache(shortUrl[0].shortid, url, 300);
 
         return res.status(200).json({ message: "URL shortened successfully", shortUrl });
     } catch (error) {
@@ -59,7 +67,7 @@ router.put("/update", async (req, res) => {
             return res.status(400).json({ message: "Please provide a URL, an API key, and a shortid" });
         }
 
-        const id = await getIdWithKey(apiKey);
+        const id = await getInfoWithKey(apiKey);
         if (id.length === 0) {
             return res.status(401).json({ message: "Invalid API key" });
         }
@@ -76,16 +84,17 @@ router.delete("/delete", async (req, res) => {
             return res.status(400).json({ message: "Please provide an API key and a shortid" });
         }
 
-        const id = await getIdWithKey(apiKey);
+        const id = await getInfoWithKey(apiKey);
         if (id.length === 0) {
             return res.status(401).json({ message: "Invalid API key" });
         }
 
         const userId = id[0].user_id;
-        const email = (await getEmailById(userId))[0].email;
+        const email = id[0].email;
         const deleteResponse = await deleteURL(userId, shortid);
         if (deleteResponse.message === 'Url deleted successfully') {
             createEvent("Url deleted", email, `${deleteResponse.shortid} -> ${deleteResponse.url}`);
+            await removeFromCache(shortid);
             return res.status(200).json({ message: deleteResponse.message });
         }
 
