@@ -38,6 +38,7 @@ const keys = await sql("\
     id SERIAL PRIMARY KEY, \
     user_key TEXT NOT NULL, \
     user_id INT NOT NULL , \
+    email TEXT NOT NULL, \
     CONSTRAINT fk_user_id \
     FOREIGN KEY (user_id) \
     REFERENCES users (id) \

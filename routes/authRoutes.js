@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
         await createEvent("User registered", user[0].email, "")
         const token = await encryptPayload({ user: { id: user[0].id, email: user[0].email } });
         const key = generateKey();
-        await insertKey(user[0].id, key);
+        await insertKey(user[0].id, key, user[0].email);
         user[0].id = undefined;
 
         return res.status(200).json({ message: "User registered successfully", user, token });
