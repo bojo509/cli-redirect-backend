@@ -1,5 +1,5 @@
 import express from "express";
-import { shortenUrl, deleteURL } from "../controller/urlController.js";
+import { getUrls, shortenUrl, deleteURL } from "../controller/urlController.js";
 import { getIdWithKey, getEmailById } from "../controller/keysController.js";
 import { createEvent } from "../controller/eventController.js";
 
